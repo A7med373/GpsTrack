@@ -4,7 +4,13 @@
 
 ## Установка
 
-1. Создайте виртуальное окружение и активируйте его:
+1. Откройте терминал. Клонируйте репозиторий. Создайте виртуальное окружение и активируйте его:
+
+```bash
+git clone https://github.com/A7med373/GpsTrack
+cd GpsTrack
+```
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # На Windows: .venv\Scripts\activate
