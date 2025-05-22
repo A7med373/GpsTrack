@@ -9,31 +9,31 @@ import os
 from dotenv import load_dotenv
 
 
-# Disable all warnings
+# Отключить все предупреждения
 warnings.filterwarnings('ignore')
 
-# Configuration
+# Конфигурация
 IMEI = "861261027896790"
 PASSWORD = "1234567"
 LOGIN_URL = "https://www.365gps.net/npost_login.php"
 MARKER_URL = "https://www.365gps.net/post_map_marker_list.php?timezonemins=-180"
 
-# Get interval from environment variable or use default (15 seconds)
-FETCH_INTERVAL = 5  # in seconds
+# Получить интервал из переменной окружения или использовать значение по умолчанию (15 секунд)
+FETCH_INTERVAL = 5  # в секундах
 
-# Define building boundaries using the provided coordinates
+# Определить границы здания, используя предоставленные координаты
 BUILDING_BOUNDS = {
-    'min_lat': 55.750182,  # Minimum latitude of the building (right-bottom)
-    'max_lat': 55.750400,  # Maximum latitude of the building (left-upper)
-    'min_lng': 49.273466,  # Minimum longitude of the building (left-bottom)
-    'max_lng': 49.273876   # Maximum longitude of the building (right-upper)
+    'min_lat': 55.750182,  # Минимальная широта здания (правый-нижний)
+    'max_lat': 55.750400,  # Максимальная широта здания (левый-верхний)
+    'min_lng': 49.273466,  # Минимальная долгота здания (левый-нижний)
+    'max_lng': 49.273876   # Максимальная долгота здания (правый-верхний)
 }
 
-# Define a buffer (in degrees) to expand the building boundaries
-# Adjust this value based on your GPS accuracy needs
-GPS_BUFFER = 0.0003  # Approximately 30-40 meters
+# Определить буфер (в градусах) для расширения границ здания
+# Настройте это значение в зависимости от точности GPS
+GPS_BUFFER = 0.0003  # Примерно 30-40 метров
 
-# Create expanded building boundaries with buffer
+# Создать расширенные границы здания с буфером
 EXPANDED_BUILDING_BOUNDS = {
     'min_lat': BUILDING_BOUNDS['min_lat'] - GPS_BUFFER,
     'max_lat': BUILDING_BOUNDS['max_lat'] + GPS_BUFFER,
@@ -42,18 +42,18 @@ EXPANDED_BUILDING_BOUNDS = {
 }
 
 def is_point_inside_building(lat, lng):
-    """Check if a GPS point is inside the building boundaries or buffer zone."""
-    # Check if point is inside the actual building
+    """Проверить, находится ли GPS-точка внутри границ здания или в буферной зоне."""
+    # Проверить, находится ли точка внутри фактического здания
     inside_actual_building = (
         BUILDING_BOUNDS['min_lat'] <= lat <= BUILDING_BOUNDS['max_lat'] and
         BUILDING_BOUNDS['min_lng'] <= lng <= BUILDING_BOUNDS['max_lng']
     )
 
-    # If inside actual building, return True
+    # Если внутри фактического здания, вернуть True
     if inside_actual_building:
         return True
 
-    # If not in actual building, check if it's within the buffer zone
+    # Если не в фактическом здании, проверить, находится ли она в буферной зоне
     inside_buffer = (
         EXPANDED_BUILDING_BOUNDS['min_lat'] <= lat <= EXPANDED_BUILDING_BOUNDS['max_lat'] and
         EXPANDED_BUILDING_BOUNDS['min_lng'] <= lng <= EXPANDED_BUILDING_BOUNDS['max_lng']
@@ -63,9 +63,9 @@ def is_point_inside_building(lat, lng):
 
 def fetch_gps_data():
     session = requests.Session()
-    session.verify = False  # Disable SSL verification
+    session.verify = False  # Отключить проверку SSL
 
-    # Login
+    # Вход в систему
     login_data = {
         "demo": "F",
         "username": IMEI,
@@ -82,84 +82,84 @@ def fetch_gps_data():
     }
 
     try:
-        # Perform login
+        # Выполнить вход
         login_response = session.post(LOGIN_URL, data=login_data, headers=headers)
         login_response.raise_for_status()
 
-        # Get GPS data
+        # Получить данные GPS
         marker_response = session.post(MARKER_URL, headers=headers)
         marker_response.raise_for_status()
 
-        # Handle response encoding
+        # Обработать кодировку ответа
         try:
-            # Try to decode with utf-8-sig first
+            # Сначала попробовать декодировать с utf-8-sig
             content = marker_response.content.decode('utf-8-sig')
         except UnicodeDecodeError:
-            # Fallback to regular utf-8
+            # Запасной вариант - обычный utf-8
             content = marker_response.content.decode('utf-8')
 
         data = json.loads(content)
 
-        # Process and save points
+        # Обработать и сохранить точки
         db_session = Session()
         try:
             for point in data.get("aaData", []):
-                # Parse signal datetime
+                # Разобрать дату и время сигнала
                 signal_dt = datetime.strptime(point["signal"], "%Y/%m/%d %H:%M:%S")
 
-                # Get coordinates
+                # Получить координаты
                 lat = float(point["lat_google"])
                 lng = float(point["lng_google"])
 
-                # Check if point is inside the actual building
+                # Проверить, находится ли точка внутри фактического здания
                 inside_actual = (
                     BUILDING_BOUNDS['min_lat'] <= lat <= BUILDING_BOUNDS['max_lat'] and
                     BUILDING_BOUNDS['min_lng'] <= lng <= BUILDING_BOUNDS['max_lng']
                 )
 
-                # Only save points that are inside the building or buffer zone
+                # Сохранять только точки, которые находятся внутри здания или в буферной зоне
                 if is_point_inside_building(lat, lng):
-                    # Create new GPS point
+                    # Создать новую GPS-точку
                     gps_point = GpsPoint(
                         lat_google=lat,
                         lng_google=lng,
                         imei=point["imei"],
                         speed=float(point["speed"]),
                         signal=signal_dt,
-                        in_actual_building=1 if inside_actual else 0  # Set flag based on location
+                        in_actual_building=1 if inside_actual else 0  # Установить флаг на основе местоположения
                     )
 
                     db_session.add(gps_point)
 
                     if inside_actual:
-                        print(f"Point inside actual building - saved: ({lat}, {lng})")
+                        print(f"Точка внутри фактического здания - сохранена: ({lat}, {lng})")
                     else:
-                        print(f"Point in buffer zone - saved: ({lat}, {lng})")
+                        print(f"Точка в буферной зоне - сохранена: ({lat}, {lng})")
                 else:
-                    print(f"Point outside expanded boundaries - ignored: ({lat}, {lng})")
+                    print(f"Точка за пределами расширенных границ - проигнорирована: ({lat}, {lng})")
 
             db_session.commit()
-            print(f"Successfully saved {len(data.get('aaData', []))} points at {datetime.now()}")
+            print(f"Успешно сохранено {len(data.get('aaData', []))} точек в {datetime.now()}")
 
         except Exception as e:
             db_session.rollback()
-            print(f"Database error: {e}")
+            print(f"Ошибка базы данных: {e}")
         finally:
             db_session.close()
 
     except requests.exceptions.RequestException as e:
-        print(f"Request error: {e}")
+        print(f"Ошибка запроса: {e}")
     except json.JSONDecodeError as e:
-        print(f"JSON decode error: {e}")
-        print(f"Response content: {marker_response.text[:200]}")  # Print first 200 chars of response
+        print(f"Ошибка декодирования JSON: {e}")
+        print(f"Содержимое ответа: {marker_response.text[:200]}")  # Вывести первые 200 символов ответа
 
 if __name__ == "__main__":
-    print(f"Starting GPS tracking with {FETCH_INTERVAL} second interval")
+    print(f"Запуск отслеживания GPS с интервалом {FETCH_INTERVAL} секунд")
 
-    # Run immediately on start
+    # Запустить сразу при старте
     fetch_gps_data()
 
-    # Schedule to run at specified interval
+    # Запланировать выполнение с указанным интервалом
     scheduler = BlockingScheduler()
     scheduler.add_job(fetch_gps_data, 'interval', seconds=FETCH_INTERVAL)
-    scheduler.start() 
+    scheduler.start()

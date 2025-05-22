@@ -1,56 +1,66 @@
-# GPS Tracking System
+# Система отслеживания GPS
 
-A system for tracking GPS coordinates from 365gps.net and displaying them on a map.
+Система для отслеживания GPS-координат с 365gps.net и отображения их на карте.
 
-## Setup
+## Установка
 
-1. Create a virtual environment and activate it:
+1. Создайте виртуальное окружение и активируйте его:
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # На Windows: .venv\Scripts\activate
 ```
 
-2. Install dependencies:
+2. Установите зависимости:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the GPS data fetcher (in one terminal):
+3. Запустите сборщик GPS-данных (в одном терминале):
 ```bash
 python fetch_coords.py
 ```
 
-4. Run the web application (in another terminal):
+4. Запустите веб-приложение (в другом терминале):
 ```bash
 python app.py
 ```
 
-5. Open your browser and navigate to `http://localhost:5000`
+5. Откройте браузер и перейдите по адресу `http://localhost:5000`
 
-## Features
+## Функции
 
-- Automatic GPS data fetching every hour
-- Web interface with OpenStreetMap integration
-- Real-time updates of GPS points
-- Detailed information popups for each point
-- SQLite database for data storage
+- Автоматический сбор GPS-данных каждые 5 секунд
+- Веб-интерфейс с интеграцией плана здания
+- Обновление GPS-точек в реальном времени
+- Подробные всплывающие окна с информацией для каждой точки
+- Хранение данных в SQLite
+- Фильтрация точек, находящихся вне здания
+- Отображение точек из буферной зоны на ближайшей границе здания
 
-## Configuration
+## Конфигурация
 
-The system uses the following default configuration:
+Система использует следующую конфигурацию по умолчанию:
 - IMEI: 861261027896790
-- Password: 1234567
+- Пароль: 1234567
+- FETCH_INTERVAL: 5 секунд (интервал обновления GPS-данных, его можно настроить в файле fetch_coords.py)
+- GPS_BUFFER: 0.0003 градуса (примерно 30-40 метров, буферная зона вокруг здания для учета неточности GPS, ее можно настроить в map.js)
 
-To change these values, modify the constants in `fetch_coords.py`.
+Для изменения этих значений измените константы в `fetch_coords.py`.
 
-## Database
+## База данных
 
-The system uses SQLite with the following schema:
-- Table: gps_points
+Система использует SQLite со следующей схемой:
+- Таблица: gps_points
   - id (Integer, Primary Key)
-  - lat_google (Float)
-  - lng_google (Float)
-  - imei (String)
-  - speed (Float)
-  - signal (DateTime)
-  - timestamp (DateTime)
+  - lat_google (Float) - широта
+  - lng_google (Float) - долгота
+  - imei (String) - идентификатор устройства
+  - speed (Float) - скорость в км/ч
+  - signal (DateTime) - время сигнала
+  - timestamp (DateTime) - время записи
+  - in_actual_building (Integer) - флаг, указывающий, находится ли точка внутри фактического здания (1) или в буферной зоне (0)
+
+## Стек
+
+Flask, APScheduler, SQLAlchemy, requests, python-dotenv, Jinja2
+Leaflet, HTML, CSS, JavaScript
