@@ -15,6 +15,7 @@ class GpsPoint(Base):
     speed = Column(Float)
     signal = Column(DateTime, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
+    in_actual_building = Column(Integer, default=0)  # 1 if in actual building, 0 if in buffer zone
 
 # Create database and tables
 engine = create_engine('sqlite:///gps_tracking.db')

@@ -23,7 +23,8 @@ def get_coords():
             'imei': point.imei,
             'speed': point.speed,
             'signal': point.signal.isoformat(),
-            'timestamp': point.timestamp.isoformat()
+            'timestamp': point.timestamp.isoformat(),
+            'in_actual_building': point.in_actual_building
         } for point in points])
     finally:
         session.close()
@@ -36,5 +37,5 @@ if __name__ == '__main__':
     # Ensure the static and templates directories exist
     os.makedirs('static', exist_ok=True)
     os.makedirs('templates', exist_ok=True)
-    
+
     app.run(debug=True, host='0.0.0.0', port=5000) 
