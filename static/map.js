@@ -6,6 +6,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
+// Keep track of the current marker
+let currentMarker = null;
+
 // Function to create a popup with point information
 function createPopup(point) {
     return `
@@ -23,24 +26,25 @@ function updatePoints() {
     fetch('/api/coords')
         .then(response => response.json())
         .then(points => {
-            // Clear existing markers
-            map.eachLayer((layer) => {
-                if (layer instanceof L.Marker) {
-                    map.removeLayer(layer);
-                }
-            });
-
-            // Add new markers
-            points.forEach(point => {
-                L.marker([point.lat_google, point.lng_google])
-                    .bindPopup(createPopup(point))
-                    .addTo(map);
-            });
-
-            // If we have points, center the map on the last point
             if (points.length > 0) {
-                const lastPoint = points[points.length - 1];
-                map.setView([lastPoint.lat_google, lastPoint.lng_google], 13);
+                // Get the latest point
+                const latestPoint = points[points.length - 1];
+                
+                // Remove existing marker if any
+                if (currentMarker) {
+                    map.removeLayer(currentMarker);
+                }
+                
+                // Add new marker
+                currentMarker = L.marker([latestPoint.lat_google, latestPoint.lng_google])
+                    .bindPopup(createPopup(latestPoint))
+                    .addTo(map);
+                
+                // Center map on the latest point
+                map.setView([latestPoint.lat_google, latestPoint.lng_google], 13);
+                
+                // Open popup
+                currentMarker.openPopup();
             }
         })
         .catch(error => console.error('Error fetching points:', error));
@@ -49,5 +53,5 @@ function updatePoints() {
 // Initial load
 updatePoints();
 
-// Update points every minute
-setInterval(updatePoints, 60000); 
+// Update points every 5 seconds
+setInterval(updatePoints, 5000); 

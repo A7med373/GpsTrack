@@ -5,6 +5,11 @@ from models import Session, GpsPoint
 from apscheduler.schedulers.blocking import BlockingScheduler
 import urllib3
 import warnings
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Disable all warnings
 warnings.filterwarnings('ignore')
@@ -14,6 +19,9 @@ IMEI = "861261027896790"
 PASSWORD = "1234567"
 LOGIN_URL = "https://www.365gps.net/npost_login.php"
 MARKER_URL = "https://www.365gps.net/post_map_marker_list.php?timezonemins=-180"
+
+# Get interval from environment variable or use default (15 seconds)
+FETCH_INTERVAL = 30  # in seconds
 
 def fetch_gps_data():
     session = requests.Session()
@@ -88,10 +96,12 @@ def fetch_gps_data():
         print(f"Response content: {marker_response.text[:200]}")  # Print first 200 chars of response
 
 if __name__ == "__main__":
+    print(f"Starting GPS tracking with {FETCH_INTERVAL} second interval")
+    
     # Run immediately on start
     fetch_gps_data()
     
-    # Schedule to run every hour
+    # Schedule to run at specified interval
     scheduler = BlockingScheduler()
-    scheduler.add_job(fetch_gps_data, 'interval', hours=1)
+    scheduler.add_job(fetch_gps_data, 'interval', seconds=FETCH_INTERVAL)
     scheduler.start() 
