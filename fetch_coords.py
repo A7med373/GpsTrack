@@ -19,7 +19,7 @@ LOGIN_URL = "https://www.365gps.net/npost_login.php"
 MARKER_URL = "https://www.365gps.net/post_map_marker_list.php?timezonemins=-180"
 
 # Получить интервал из переменной окружения или использовать значение по умолчанию (15 секунд)
-FETCH_INTERVAL = 10  # в секундах
+FETCH_INTERVAL = 320  # в секундах
 
 # Определить границы здания, используя предоставленные координаты
 BUILDING_BOUNDS = {
