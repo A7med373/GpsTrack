@@ -7,6 +7,7 @@ import urllib3
 import warnings
 import os
 from dotenv import load_dotenv
+from sqlalchemy import desc
 
 
 # Отключить все предупреждения
@@ -19,7 +20,7 @@ LOGIN_URL = "https://www.365gps.net/npost_login.php"
 MARKER_URL = "https://www.365gps.net/post_map_marker_list.php?timezonemins=-180"
 
 # Получить интервал из переменной окружения или использовать значение по умолчанию (320 секунд)
-FETCH_INTERVAL = 320  # в секундах
+FETCH_INTERVAL = 3  # в секундах
 
 # Определить границы здания, используя предоставленные координаты
 BUILDING_BOUNDS = {
@@ -39,6 +40,28 @@ EXPANDED_BUILDING_BOUNDS = {
     'min_lng': BUILDING_BOUNDS['min_lng'] - GPS_BUFFER,
     'max_lng': BUILDING_BOUNDS['max_lng'] + GPS_BUFFER
 }
+
+def clean_old_points():
+    """Удаляет старые точки, оставляя только последние 5."""
+    db_session = Session()
+    try:
+        # Получить общее количество точек
+        total_points = db_session.query(GpsPoint).count()
+        
+        if total_points >= 50:
+            # Получить ID последних 5 точек
+            last_5_points = db_session.query(GpsPoint.id).order_by(desc(GpsPoint.id)).limit(5).all()
+            last_5_ids = [point[0] for point in last_5_points]
+            
+            # Удалить все точки, кроме последних 5
+            db_session.query(GpsPoint).filter(~GpsPoint.id.in_(last_5_ids)).delete()
+            db_session.commit()
+            print(f"Очистка базы данных: удалено {total_points - 5} старых точек")
+    except Exception as e:
+        db_session.rollback()
+        print(f"Ошибка при очистке базы данных: {e}")
+    finally:
+        db_session.close()
 
 def is_point_inside_building(lat, lng):
     """Проверить, находится ли GPS-точка внутри границ здания или в буферной зоне."""
@@ -139,6 +162,9 @@ def fetch_gps_data():
 
             db_session.commit()
             print(f"Успешно сохранено {len(data.get('aaData', []))} точек в {datetime.now()}")
+            
+            # Проверить количество точек и очистить старые, если нужно
+            clean_old_points()
 
         except Exception as e:
             db_session.rollback()
