@@ -14,8 +14,8 @@ from sqlalchemy import desc
 warnings.filterwarnings('ignore')
 
 # Конфигурация
-IMEI = "861261027896790"
-PASSWORD = "1234567"
+IMEI = "861261027885199"
+PASSWORD = "123456"
 LOGIN_URL = "https://www.365gps.net/npost_login.php"
 MARKER_URL = "https://www.365gps.net/post_map_marker_list.php?timezonemins=-180"
 
